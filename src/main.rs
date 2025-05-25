@@ -1,11 +1,12 @@
 use std::env;
 use std::env::{args, current_exe};
 use std::fs::{remove_file, File};
-use std::io::{Read, Write};
+use std::io::{stdin, Read, Write};
 use std::path::Path;
 use std::process::Command;
 
 fn main() {
+    print!("\n");
     // 读取参数
     let args: Vec<String> = args().collect();
     // 如果有参数，打包模式
@@ -16,6 +17,10 @@ fn main() {
     else {
         run_self()
     }
+    // 运行结束等待退出
+    println!("\nPress any key to continue (按任意键继续) ...");
+    let mut line = String::new();
+    stdin().read_line(&mut line).unwrap();
 }
 
 // 读取自身末尾的 js 文件，并调用 node.js 执行
@@ -42,7 +47,7 @@ fn run_self() {
         let output = Command::new("node")
             .arg(file_name)
             .output()
-            .expect("运行失败：未找到 Node.js，请检查是否安装。");
+            .expect("Running failed: Node.js not found, please check if it is installed.\n(运行失败：未找到 Node.js，请检查是否安装）");
         // 执行完成，删除文件
         remove_file(file_name).unwrap();
         // 打印错误
@@ -51,7 +56,7 @@ fn run_self() {
         print!("{}", String::from_utf8_lossy(&output.stdout));
     }
     else {
-        println!("运行失败：程序中未嵌入js");
+        println!("Running failed: JS not embedded in the program.\n(运行失败：程序中未嵌入js)");
     }
 }
 
@@ -72,13 +77,15 @@ fn package_js(path: &String) {
             let mut js_buffer = Vec::new();
             let _ = js_file.read_to_end(&mut js_buffer);
             // 写文件
-            let mut js_file = File::create(format!("{}{}", path.replace(".js", "").replace(".mjs", ""), if env::consts::OS == "windows" { ".exe" } else { "" }  )).unwrap();
+            let exe_path = format!("{}{}", path.replace(".js", "").replace(".mjs", ""), if env::consts::OS == "windows" { ".exe" } else { "" }  );
+            let mut js_file = File::create(&exe_path).unwrap();
             let _ = js_file.write_all( [ &buffer[..], &mark_buffer[..], &js_buffer[..] ].concat().as_slice() );
+            println!("The executable file has been generated (已经生成可执行文件) : {}", &exe_path);
         } else {
-            println!("{} 不是js文件", path);
+            println!("{} It's not a JS file. (该文件不是js文件)", path);
         }
     } else { 
-        println!("文件不存在：{}", path);
+        println!("file does not exist (文件不存在): {}", path);
     }
 }
 
